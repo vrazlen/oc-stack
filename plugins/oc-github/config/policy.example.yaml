@@ -1,0 +1,18 @@
+# READ_ATTEMPT
+# GitHub Autonomy Plugin Configuration
+
+# Enforcement mode: 'fail_closed' (deny unless explicitly allowed) or 'monitor' (log only)
+mode: fail_closed
+
+# Repository Allowlist
+# Patterns support:
+# - exact: "owner/repo"
+# - organization wildcard: "org/*"
+# - regex: "/^internal-.*$/" (not yet fully supported in all matchers, sticking to glob/exact is safest)
+allowlist:
+  - "my-org/*"
+  - "my-username/my-repo"
+
+# Explicit Denylist (overrides allowlist)
+denylist:
+  - "my-org/critical-infrastructure"
