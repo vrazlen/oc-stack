@@ -1,0 +1,52 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# API keys and credentials
+*.key
+*.pem
+*.p12
+credentials.json
+credentials*.json
+service-account*.json
+
+# Logs
+*.log
+logs/
+
+# Caches and local state
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+.npm/
+.yarn/
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+LLM-API-Key-Proxy/

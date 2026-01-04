@@ -1,0 +1,38 @@
+# LLM API Key Proxy - Systemd User Service
+# 
+# This is a template. Adjust paths before installing.
+#
+# Installation:
+#   1. Copy to ~/.config/systemd/user/llm-proxy.service
+#   2. Adjust WorkingDirectory, EnvironmentFile, and ExecStart paths
+#   3. Run: systemctl --user daemon-reload
+#   4. Run: systemctl --user enable --now llm-proxy.service
+#
+# For boot autostart (without login), enable lingering:
+#   loginctl enable-linger $USER
+
+[Unit]
+Description=LLM API Key Proxy
+After=network.target
+
+[Service]
+Type=simple
+
+# IMPORTANT: Update these paths to match your installation
+WorkingDirectory=/path/to/LLM-API-Key-Proxy
+EnvironmentFile=/path/to/LLM-API-Key-Proxy/.env
+
+# IMPORTANT: Update the Python path to your venv
+ExecStart=/path/to/LLM-API-Key-Proxy/venv/bin/python src/proxy_app/main.py --host 127.0.0.1 --port 8000
+
+# Restart policy
+Restart=always
+RestartSec=3
+
+# Security hardening (optional but recommended)
+# NoNewPrivileges=true
+# ProtectHome=read-only
+# ProtectSystem=strict
+
+[Install]
+WantedBy=default.target

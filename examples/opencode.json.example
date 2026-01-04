@@ -1,0 +1,81 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "opencode-openai-codex-auth@4.2.0",
+    "oh-my-opencode"
+  ],
+  "enabled_providers": ["openai", "gemini_cli", "antigravity"],
+  "disabled_providers": [
+    "github-copilot", "o3", "grok", "minimax", "glm", "bedrock",
+    "openrouter", "together", "fireworks", "replicate", "huggingface",
+    "cohere", "anthropic", "azure", "google", "mistral", "nvidia_nim"
+  ],
+  "provider": {
+    "openai": {
+      "options": {
+        "reasoningEffort": "medium",
+        "reasoningSummary": "auto",
+        "textVerbosity": "medium",
+        "include": ["reasoning.encrypted_content"],
+        "store": false
+      },
+      "whitelist": [
+        "gpt-5.2-none", "gpt-5.2-low", "gpt-5.2-medium", "gpt-5.2-high", "gpt-5.2-xhigh",
+        "gpt-5.2-codex-low", "gpt-5.2-codex-medium", "gpt-5.2-codex-high", "gpt-5.2-codex-xhigh",
+        "gpt-5.1-none", "gpt-5.1-low", "gpt-5.1-medium", "gpt-5.1-high",
+        "gpt-5.1-codex-low", "gpt-5.1-codex-medium", "gpt-5.1-codex-high",
+        "gpt-5.1-codex-max-low", "gpt-5.1-codex-max-medium", "gpt-5.1-codex-max-high", "gpt-5.1-codex-max-xhigh",
+        "gpt-5.1-codex-mini-medium", "gpt-5.1-codex-mini-high"
+      ],
+      "models": {
+        "gpt-5.2-none": { "name": "GPT 5.2 None (OAuth)", "limit": { "context": 272000, "output": 128000 }, "modalities": { "input": ["text", "image"], "output": ["text"] } },
+        "gpt-5.2-low": { "name": "GPT 5.2 Low (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-medium": { "name": "GPT 5.2 Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-high": { "name": "GPT 5.2 High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-xhigh": { "name": "GPT 5.2 Extra High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-codex-low": { "name": "GPT 5.2 Codex Low (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-codex-medium": { "name": "GPT 5.2 Codex Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-codex-high": { "name": "GPT 5.2 Codex High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.2-codex-xhigh": { "name": "GPT 5.2 Codex Extra High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-none": { "name": "GPT 5.1 None (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-low": { "name": "GPT 5.1 Low (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-medium": { "name": "GPT 5.1 Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-high": { "name": "GPT 5.1 High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-low": { "name": "GPT 5.1 Codex Low (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-medium": { "name": "GPT 5.1 Codex Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-high": { "name": "GPT 5.1 Codex High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-max-low": { "name": "GPT 5.1 Codex Max Low (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-max-medium": { "name": "GPT 5.1 Codex Max Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-max-high": { "name": "GPT 5.1 Codex Max High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-max-xhigh": { "name": "GPT 5.1 Codex Max Extra High (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-mini-medium": { "name": "GPT 5.1 Codex Mini Medium (OAuth)", "limit": { "context": 272000, "output": 128000 } },
+        "gpt-5.1-codex-mini-high": { "name": "GPT 5.1 Codex Mini High (OAuth)", "limit": { "context": 272000, "output": 128000 } }
+      }
+    },
+    "gemini_cli": {
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "YOUR_PROXY_API_KEY"
+      },
+      "models": {
+        "gemini_cli/gemini-2.5-pro": { "name": "Gemini 2.5 Pro (via Proxy)", "limit": { "context": 1048576, "output": 8192 } },
+        "gemini_cli/gemini-2.5-flash": { "name": "Gemini 2.5 Flash (via Proxy)", "limit": { "context": 1048576, "output": 8192 } },
+        "gemini_cli/gemini-2.5-flash-lite": { "name": "Gemini 2.5 Flash Lite (via Proxy)", "limit": { "context": 1048576, "output": 8192 } },
+        "gemini_cli/gemini-3-pro-preview": { "name": "Gemini 3 Pro Preview (via Proxy)", "limit": { "context": 1048576, "output": 8192 } }
+      }
+    },
+    "antigravity": {
+      "options": {
+        "baseURL": "http://127.0.0.1:8000/v1",
+        "apiKey": "YOUR_PROXY_API_KEY"
+      },
+      "models": {
+        "antigravity/gemini-3-pro-preview": { "name": "Gemini 3 Pro Antigravity (via Proxy)", "limit": { "context": 1048576, "output": 8192 } },
+        "antigravity/claude-sonnet-4-5": { "name": "Claude Sonnet 4.5 (via Proxy)", "limit": { "context": 200000, "output": 8192 } },
+        "antigravity/claude-opus-4-5": { "name": "Claude Opus 4.5 (via Proxy)", "limit": { "context": 200000, "output": 4096 } }
+      }
+    }
+  },
+  "model": "openai/gpt-5.2-codex-medium",
+  "small_model": "gemini_cli/gemini-2.5-flash"
+}
