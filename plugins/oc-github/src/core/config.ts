@@ -121,6 +121,12 @@ export class ConfigManager {
     const privateKey = config.auth.privateKey
     const privateKeyPath = config.auth.privateKeyPath
 
+    // Hydrate githubToken from environment variable if not set in config
+    let githubToken = config.auth.githubToken
+    if (!githubToken) {
+      githubToken = process.env.OPENCODE_GITHUB_TOKEN || process.env.GITHUB_TOKEN
+    }
+
     if (!privateKey && privateKeyPath) {
       const content = await maybeReadFile(privateKeyPath)
       if (content) {
@@ -129,11 +135,18 @@ export class ConfigManager {
           auth: {
             ...config.auth,
             privateKey: content,
+            githubToken,
           },
         }
       }
     }
 
-    return config
+    return {
+      ...config,
+      auth: {
+        ...config.auth,
+        githubToken,
+      },
+    }
   }
 }

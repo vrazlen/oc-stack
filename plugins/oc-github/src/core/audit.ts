@@ -1,8 +1,13 @@
 
-import { AuditEntry } from './types.js';
+import { AuditEntry, AuditConfig } from './types.js';
 
 export class AuditLogger {
   private entries: AuditEntry[] = [];
+  private config: AuditConfig;
+
+  constructor(config: AuditConfig) {
+    this.config = config;
+  }
 
   log(entry: AuditEntry): void {
     // Redact tokens in error message or other fields if necessary
@@ -26,7 +31,8 @@ export class AuditLogger {
   }
 
   private redact(text: string): string {
-    // Redact common token patterns
-    return text.replace(/(gh[pousr]_[a-zA-Z0-9]{36,})/g, '[REDACTED]');
+    return text
+      .replace(/(gh[pousr]_[a-zA-Z0-9]{36,})/g, '[REDACTED]')
+      .replace(/(github_pat_[a-zA-Z0-9_]{20,})/g, '[REDACTED]');
   }
 }

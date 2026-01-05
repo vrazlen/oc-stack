@@ -7,13 +7,13 @@ Perform these checks to ensure the plugin is behaving correctly.
 - [ ] `GitHub Autonomy Plugin loaded` message appears in logs.
 
 ## 2. Policy Enforcement
-- [ ] **Read Test**: `github.issue.list` on a public repo (e.g., `facebook/react`) should SUCCEED.
-- [ ] **Write Test (Deny)**: `github.issue.create` on a non-allowlisted repo should FAIL with "needs_approval".
-- [ ] **Write Test (Allow)**: Add a test repo to `allowlist`. `github.issue.create` should SUCCEED (or prompt session approval if configured to prompt).
+- [ ] **Read Test**: `github_issue_list` on a public repo (e.g., `facebook/react`) should SUCCEED.
+- [ ] **Write Test (Deny)**: `github_issue_create` on a non-allowlisted repo should FAIL with "needs_approval".
+- [ ] **Write Test (Allow)**: Add a test repo to `allowlist`. `github_issue_create` should SUCCEED (or prompt session approval if configured to prompt).
 
 ## 3. Approval Flow
 - [ ] Trigger a write on a non-allowlisted repo.
-- [ ] Use `github.session.allow_repo` tool.
+- [ ] Use `github_session_allow_repo` tool.
 - [ ] Retry write; it should SUCCEED.
 
 ## 4. Guardrails

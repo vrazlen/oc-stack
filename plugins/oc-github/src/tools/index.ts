@@ -1,81 +1,8 @@
-import { tool, type ToolContext, type ToolDefinition } from '@opencode-ai/plugin'
-import type { PolicyEngine } from '../core/policy.js'
-import type { ApprovalManager } from '../core/approval.js'
-import type { AuditLogger } from '../core/audit.js'
-import type { GitHubTransport } from '../adapters/types.js'
-import type { PolicyRequest } from '../core/types.js'
-
-type Deps = {
-  policyEngine: PolicyEngine
-  approvalManager: ApprovalManager
-  auditLogger: AuditLogger
-  transport: GitHubTransport
-}
-
-type ToolResult = {
-  ok: boolean
-  data?: unknown
-  error?: {
-    code: string
-    message: string
-    reason?: string
-  }
-  decision?: {
-    outcome: string
-    reason: string
-  }
-}
-
-function json(result: ToolResult): string {
-  return JSON.stringify(result, null, 2)
-}
-
-function repoSlug(owner: string, repo: string): string {
-  return `${owner}/${repo}`
-}
-
-function assertSafeWritePath(path: string): { ok: true } | { ok: false; reason: string } {
-  if (path.startsWith('.github/workflows/')) {
-    return { ok: false, reason: 'Modifying workflow files is forbidden by policy' }
-  }
-  return { ok: true }
-}
-
-async function guarded(
-  deps: Deps,
-  context: ToolContext,
-  request: PolicyRequest,
-  exec: () => Promise<unknown>
-): Promise<string> {
-  const decision = deps.policyEngine.evaluate(request, context.sessionID)
-
-  if (decision.outcome === 'denied') {
-    return json({
-      ok: false,
-      error: { code: 'NOT_ALLOWED', message: 'Access denied', reason: decision.reason },
-      decision,
-    })
-  }
-
-  if (decision.outcome === 'needs_approval') {
-    return json({
-      ok: false,
-      error: {
-        code: 'NEEDS_APPROVAL',
-        message: `Approval required for write to ${repoSlug(request.resource.owner, request.resource.repo)}`,
-        reason: decision.reason,
-      },
-      decision,
-    })
-  }
-
-  const result = await exec()
-  return json({ ok: true, data: result, decision })
-}
+import { createStarterSet } from '../helpers/repo-init.js'
 
 export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
   return {
-    'github.search': tool({
+    github_search: tool({
       description: 'Search GitHub repositories/issues/code (read-only)',
       args: {
         query: tool.schema.string(),
@@ -92,7 +19,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.issue.list': tool({
+    github_issue_list: tool({
       description: 'List issues in a repository (read-only)',
       args: {
         owner: tool.schema.string(),
@@ -109,7 +36,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.issue.create': tool({
+    github_issue_create: tool({
       description: 'Create an issue (write; allowlist or per-session approval required)',
       args: {
         owner: tool.schema.string(),
@@ -135,7 +62,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.issue.comment': tool({
+    github_issue_comment: tool({
       description: 'Comment on an issue/PR (write; allowlist or per-session approval required)',
       args: {
         owner: tool.schema.string(),
@@ -161,7 +88,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.pr.list': tool({
+    github_pr_list: tool({
       description: 'List pull requests in a repository (read-only)',
       args: {
         owner: tool.schema.string(),
@@ -178,7 +105,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.pr.create': tool({
+    github_pr_create: tool({
       description: 'Create a pull request (write; allowlist or per-session approval required)',
       args: {
         owner: tool.schema.string(),
@@ -211,7 +138,7 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.repo.file.get': tool({
+    github_repo_file_get: tool({
       description: 'Get file content from a repository (read-only)',
       args: {
         owner: tool.schema.string(),
@@ -229,9 +156,8 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.repo.file.put': tool({
-      description:
-        'Create/update a file via Contents API (write; allowlist or per-session approval required)',
+    github_repo_file_put: tool({
+      description: 'Create/update a file via Contents API (write; allowlist or per-session approval required)',
       args: {
         owner: tool.schema.string(),
         repo: tool.schema.string(),
@@ -269,9 +195,8 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
       },
     }),
 
-    'github.session.allow_repo': tool({
-      description:
-        'Allow write actions for a repository for the current session. Use ONLY after explicit user confirmation.',
+    github_session_allow_repo: tool({
+      description: 'Allow write actions for a repository for the current session. Use ONLY after explicit user confirmation.',
       args: {
         owner: tool.schema.string(),
         repo: tool.schema.string(),
@@ -288,5 +213,78 @@ export function createGitHubTools(deps: Deps): Record<string, ToolDefinition> {
         })
       },
     }),
+
+    github_repo_create: tool({
+      description: 'Create a new repository for the authenticated user (write; requires approval). Creates with README.md and .gitignore starter files.',
+      args: {
+        name: tool.schema.string().min(1).max(100),
+        description: tool.schema.string().optional(),
+        private: tool.schema.boolean().default(true),
+        homepage: tool.schema.string().optional(),
+        has_issues: tool.schema.boolean().default(true),
+        has_projects: tool.schema.boolean().default(false),
+        has_wiki: tool.schema.boolean().default(false),
+        gitignore_template: tool.schema.string().optional(),
+      },
+      execute: async (args, context) => {
+        const request: PolicyRequest = {
+          action: 'repo.create',
+          capability: 'write',
+          resource: { owner: 'user', repo: args.name, type: 'repo' },
+        }
+
+        return await guarded(deps, context, request, async () => {
+          const createResult = await deps.transport.request({
+            path: '/user/repos',
+            method: 'POST',
+            body: {
+              name: args.name,
+              description: args.description,
+              private: args.private,
+              homepage: args.homepage,
+              has_issues: args.has_issues,
+              has_projects: args.has_projects,
+              has_wiki: args.has_wiki,
+              auto_init: false,
+            },
+            authMode: 'token',
+          })
+
+          if (!createResult.ok) {
+            return createResult
+          }
+
+          const repoData = createResult.data as { owner: { login: string }; name: string; html_url: string }
+          const owner = repoData.owner.login
+          const repo = repoData.name
+
+          const initResult = await createStarterSet(
+            deps.transport,
+            owner,
+            repo,
+            args.description,
+            args.gitignore_template
+          )
+
+          if (!initResult.ok) {
+            return json({
+              ok: true,
+              data: repoData,
+              warning: `Repository created but initialization failed: ${initResult.error}`,
+            })
+          }
+
+          return json({
+            ok: true,
+            data: {
+              ...repoData,
+              initialized: true,
+              default_branch: 'main',
+            },
+          })
+        })
+      },
+    }),
   }
 }
+
