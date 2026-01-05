@@ -1,0 +1,3 @@
+[submodule "plugins/oc-github"]
+	path = plugins/oc-github
+	url = https://github.com/vrazlen/opencode-github-autonomy.git
