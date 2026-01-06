@@ -1,51 +1,45 @@
-# oc-stack
+# oc-stack - OpenCode Development Environment
 
-Documentation and configuration wrapper for deploying LLM-API-Key-Proxy with OpenCode integration.
+The complete configuration wrapper for the OpenCode development environment, integrating local proxy routing, OAuth authentication, plugin management, and MCP tools.
 
-## What This Is
+## Architecture
 
-A hardened, reproducible deployment guide that combines:
-- **LLM-API-Key-Proxy**: Routes API requests to multiple LLM providers (Gemini, Anthropic)
-- **OpenCode Integration**: Configures OpenCode to use OpenAI OAuth + local proxy
-- **Systemd Automation**: User service for autostart without root
+```
+      [ OpenCode ]
+           │
+           ├─ (Proxy) ──▶ [ LLM-API-Key-Proxy ] ──▶ [ Gemini / Anthropic ]
+           │                  (127.0.0.1:8000)
+           │
+           ├─ (OAuth) ──▶ [ opencode-openai-codex-auth ] ──▶ [ OpenAI ]
+           │
+           ├─ (Plugins) ─▶ [ opencode-github-autonomy ] ──▶ [ GitHub ]
+           │             └▶ [ opencode-morph-fast-apply ]
+           │
+           └─ (MCP) ────▶ [ Exa Search ] ──▶ [ Web / Code Context ]
+```
 
-### What This Is NOT
+## Components
 
-- Not a secrets vault
-- Not a compliance solution (HIPAA, SOC2, etc.)
-- Not designed for public internet exposure
-- Not a Docker/Kubernetes deployment
-
-## Model Support
-
-| Provider | Models | Access Method |
-|----------|--------|---------------|
-| OpenAI | 22 models (GPT-5.1, GPT-5.2 series) | OAuth via opencode-openai-codex-auth |
-| Gemini | 4 models (2.5 Pro, 2.5 Flash, 3 Pro) | Via LLM-API-Key-Proxy |
-| Anthropic | 3 models (Claude Sonnet 4.5, Opus 4.5) | Via LLM-API-Key-Proxy |
-
-**Total: 29 models** available in OpenCode.
+1.  **LLM-API-Key-Proxy**: A hardened local service running on `127.0.0.1:8000` that securely routes API requests to Gemini and Anthropic without exposing keys.
+2.  **Plugins**: A suite of extensions providing GitHub autonomy, OAuth flows, and editor enhancements.
+3.  **MCP (Model Context Protocol)**: Integrations like Exa for real-time web search and code context fetching.
 
 ## Quick Start
 
 ### Prerequisites
-
 - Linux with systemd
 - Python 3.10+
 - Git
 - OpenCode installed
 
 ### 1. Clone Repository
-
 ```bash
 git clone https://github.com/your-username/oc-stack.git
 cd oc-stack
 ```
 
 ### 2. Set Up Proxy
-
-Clone and configure the proxy:
-
+Clone and configure the proxy submodule:
 ```bash
 git clone https://github.com/your-username/LLM-API-Key-Proxy.git ~/Work/repos/LLM-API-Key-Proxy
 cd ~/Work/repos/LLM-API-Key-Proxy
@@ -55,113 +49,64 @@ pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment
-
 ```bash
 cp /path/to/oc-stack/config/.env.example ~/Work/repos/LLM-API-Key-Proxy/.env
 nano ~/Work/repos/LLM-API-Key-Proxy/.env
+# Add your Gemini/Anthropic API keys
 ```
 
-Add your API keys (Gemini, Anthropic).
-
-### 4. Install Systemd Service
-
+### 4. Install Service
 ```bash
 ./scripts/install-systemd-user-service.sh
-```
-
-### 5. Enable Boot Autostart
-
-```bash
 ./scripts/enable-linger.sh
 ```
 
-### 6. Configure OpenCode
-
+### 5. Configure OpenCode
 ```bash
 cp examples/opencode.json.example ~/.config/opencode/opencode.json
 nano ~/.config/opencode/opencode.json
+# Update apiKey values if needed
 ```
 
-Update `apiKey` values for proxy providers.
-
-### 7. Verify
-
+### 6. Verify
 ```bash
 ./scripts/verify-config.sh
 ./scripts/status.sh
 ```
 
-## Architecture
+## Model Providers
 
-```
-┌─────────────┐     ┌─────────────────┐     ┌──────────────┐
-│   OpenCode  │────▶│ LLM-API-Key-    │────▶│ Gemini API   │
-│             │     │ Proxy (8000)    │────▶│ Anthropic API│
-└─────────────┘     └─────────────────┘     └──────────────┘
-       │
-       │ (OAuth)
-       ▼
-┌─────────────┐
-│ OpenAI      │
-│ Codex API   │
-└─────────────┘
-```
+| Provider | Models | Auth Method |
+|----------|--------|-------------|
+| **OpenAI** | 22 | OAuth (Direct via plugin) |
+| **Gemini** | 4 | Proxy (Localhost) |
+| **Antigravity** | 3 | Proxy (Localhost) |
 
-- **OpenAI models**: Direct OAuth via opencode-openai-codex-auth plugin
-- **Gemini/Anthropic models**: Routed through local proxy
+**Total: 29 models** available for development and testing.
 
-## Configuration Files
+## Plugin Ecosystem
 
-| File | Location | Purpose |
-|------|----------|---------|
-| `.env` | `~/Work/repos/LLM-API-Key-Proxy/.env` | Proxy API keys |
-| `opencode.json` | `~/.config/opencode/opencode.json` | OpenCode providers |
-| `llm-proxy.service` | `~/.config/systemd/user/` | Systemd service |
+This stack relies on a core set of plugins to provide autonomy and speed:
 
-## Documentation
+*   **opencode-github-autonomy**: Full GitHub integration (Issues, PRs, Repos).
+*   **opencode-openai-codex-auth**: Handles OAuth handshakes for OpenAI access.
+*   **opencode-morph-fast-apply**: Accelerated code application for AI agents.
+*   **oh-my-opencode**: UX enhancements and shortcuts.
+*   **type-inject** / **dcp**: Essential developer utilities.
 
-- [Installation Guide](docs/INSTALL.md)
-- [Production Deployment](docs/PRODUCTION.md)
-- [Observability & Logging](docs/OBSERVABILITY.md)
-- [Threat Model](docs/THREAT_MODEL.md)
-- [External References](docs/REFERENCES.md)
-- [Release Checklist](docs/RELEASE.md)
+See [docs/PLUGINS.md](docs/PLUGINS.md) for installation and configuration details.
+
+## MCP Integrations
+
+*   **Exa**: High-precision web search and code context retrieval, allowing the agent to find up-to-date documentation and implementation examples.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for:
-- Vulnerability reporting
-- Hardening guidelines
-- Security checklist
-
-**Key Points**:
-- Bind proxy to localhost only
-- Never commit `.env` files
-- Use TLS via reverse proxy for external access
-
-## Privacy
-
-See [PRIVACY.md](PRIVACY.md) for:
-- Data handling practices
-- Logging and retention
-- Third-party data flow
-
-## External Repositories
-
-This project integrates with:
-
-| Repository | Purpose |
-|------------|---------|
-| [LLM-API-Key-Proxy](https://github.com/your-username/LLM-API-Key-Proxy) | Core proxy implementation |
-| [opencode-openai-codex-auth](https://github.com/numman-ali/opencode-openai-codex-auth) | OpenAI OAuth plugin |
-| [OpenCode](https://opencode.ai) | AI coding assistant |
+See [SECURITY.md](SECURITY.md) for hardening guidelines and threat models.
+*   Proxy binds strictly to `127.0.0.1`.
+*   API keys are never committed (use `.env`).
+*   Service runs as a user-level systemd unit.
 
 ## License
 
 [MIT](LICENSE)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-All contributors must follow our [Code of Conduct](CODE_OF_CONDUCT.md).

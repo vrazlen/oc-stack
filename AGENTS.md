@@ -8,9 +8,9 @@
 
 ## OVERVIEW
 
-Configuration and documentation repo that routes Gemini/Anthropic via local proxy (port 8000), OpenAI via OAuth. Contains shell scripts, systemd service template, and example configs. 29 models total.
+Configuration and documentation repo routing Gemini/Anthropic via local proxy (port 8000), OpenAI via OAuth. Contains shell scripts, systemd service template, and example configs. **29 models total.**
 
-**This is NOT an application codebase.** No build/test/lint commands exist. Changes are config files, shell scripts, and documentation.
+**This is NOT an application codebase.** No build/test/lint commands exist.
 
 ---
 
@@ -20,10 +20,10 @@ Configuration and documentation repo that routes Gemini/Anthropic via local prox
 oc-stack/
 ├── config/              # .env.example template
 ├── docs/                # Installation, production, security docs
-├── examples/            # opencode.json configuration example
+├── examples/            # opencode.json.example configuration
 ├── scripts/             # Automation (install, verify, status, linger)
 ├── systemd/             # llm-proxy.service template
-└── LLM-API-Key-Proxy/   # Git submodule - DO NOT modify here
+└── LLM-API-Key-Proxy/   # Git submodule - DO NOT modify
 ```
 
 ---
@@ -31,115 +31,89 @@ oc-stack/
 ## COMMANDS
 
 ```bash
-# Verification (the closest thing to "tests")
-./scripts/verify-config.sh    # Checks config files exist
+# Validation (closest thing to "tests")
+./scripts/verify-config.sh
 
-# Service operations
+# Service operations (always use --user flag)
 systemctl --user start llm-proxy
 systemctl --user status llm-proxy
 systemctl --user stop llm-proxy
-journalctl --user -u llm-proxy -f
+journalctl --user -u llm-proxy -f --no-pager
 
 # Installation
 git submodule update --init --recursive
 ./scripts/install-systemd-user-service.sh
 ./scripts/enable-linger.sh
+
+# Quick status check
+./scripts/status.sh
 ```
 
-**No build, lint, or test commands.** Validation is manual or via `verify-config.sh`.
+**No build, lint, or test commands.** Use `verify-config.sh` for validation.
 
 ---
 
-## CODE STYLE (Shell Scripts)
+## CODE STYLE
 
-All scripts in `scripts/` follow these conventions:
+### Shell Scripts (`scripts/*.sh`)
 
-### Shebang and Safety
+Every script MUST start with:
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 ```
-- **ALWAYS** use `#!/usr/bin/env bash` (not `#!/bin/bash`)
-- **ALWAYS** use `set -euo pipefail` on line 2
-- `-e`: Exit on error
-- `-u`: Error on undefined variables
-- `-o pipefail`: Catch pipe failures
 
-### Variables
-```bash
-# Constants: UPPER_SNAKE_CASE
-SERVICE_NAME="llm-proxy.service"
-USER_SYSTEMD_DIR="$HOME/.config/systemd/user"
+| Convention | Example |
+|------------|---------|
+| Shebang | `#!/usr/bin/env bash` (not `#!/bin/bash`) |
+| Safety flags | `set -euo pipefail` on line 2 |
+| Script dir | `SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"` |
+| Constants | `UPPER_SNAKE_CASE` (e.g., `SERVICE_NAME="llm-proxy"`) |
+| Local vars | `local var="$1"` inside functions |
+| Conditionals | `[[ ]]` (not `[ ]`) |
+| Silent checks | `&>/dev/null` or `grep -q` |
+| Output prefixes | `[OK]`, `[MISSING]`, `ERROR:`, `WARNING:` |
+| Section headers | `echo "=== Header ==="` |
+| User prompts | `read -p "Continue? [Y/n] " -n 1 -r` |
+| Editor fallback | `${EDITOR:-nano}` |
 
-# Computed paths: Use $() for subshells
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-```
+### Helper Function Pattern
 
-### Conditionals
-```bash
-# Use [[ ]] for tests (not [ ])
-if [[ -f "$path" ]]; then
-    echo "[OK] File exists"
-fi
-
-# Redirect stderr for silent checks
-if systemctl --user is-active "$SERVICE_NAME" &>/dev/null; then
-    echo "Running"
-fi
-```
-
-### Output Style
-```bash
-echo "=== Section Header ==="    # Major sections
-echo ""                          # Blank lines for readability
-echo "[OK] Check passed"         # Status prefixes
-echo "[MISSING] Check failed"
-echo "ERROR: Something wrong"
-echo "WARNING: Potential issue"
-```
-
-### User Prompts
-```bash
-read -p "Continue? [Y/n] " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-    # Default is Yes
-fi
-```
-
-### Functions
 ```bash
 check_file() {
-    local path="$1"
+    local file="$1"
     local desc="$2"
-    if [[ -f "$path" ]]; then
-        echo "[OK] $desc: $path"
+    if [[ -f "$file" ]]; then
+        echo "[OK] $desc: $file"
     else
-        echo "[MISSING] $desc: $path"
-        ((ERRORS++))
+        echo "[MISSING] $desc: $file"
     fi
 }
 ```
 
----
+### Config Files
 
-## FILE EDITING GUIDELINES
+| File Type | Convention |
+|-----------|------------|
+| `.env` | UPPER_SNAKE_CASE, section headers with `# ===`, empty values for secrets |
+| `.json` | 2-space indent, no trailing commas, no comments |
+| `.service` | Absolute paths with `/path/to` placeholders, bind to `127.0.0.1` |
+| `.md` | Tables for structured info, code blocks for commands |
 
-### Config Files (.env, .json)
-- **NEVER** add real API keys, tokens, or credentials
-- Keep `.example` suffix for templates
-- Document each setting with comments
+### .env Structure Pattern
 
-### Systemd Service Files
-- Paths must be absolute
-- Include comments explaining customization needed
-- Use `127.0.0.1` not `localhost` for binding
+```bash
+# === Section Header ===
+PROXY_HOST=127.0.0.1
+PROXY_PORT=8000
 
-### Documentation (.md)
-- Use tables for structured info
-- Include command examples in code blocks
-- Keep security warnings prominent
+# Secrets (empty in template)
+GEMINI_API_KEY=
+ANTHROPIC_API_KEY=
+
+# WARNING: Set to false in production
+LOG_BODIES=false
+```
 
 ---
 
@@ -147,14 +121,16 @@ check_file() {
 
 | Forbidden | Reason |
 |-----------|--------|
-| Commit .env, API keys, tokens | Secret leakage - rotate immediately if committed |
+| Commit `.env`, API keys, tokens | Secret leakage - rotate immediately if committed |
 | Expose port 8000 publicly | No auth on proxy - localhost only |
-| LOG_BODIES=true in prod | Leaks prompts/responses to logs |
-| .env permissions != 600 | Keys readable by other users |
+| `LOG_BODIES=true` in prod | Leaks prompts/responses to logs |
+| `.env` permissions != 600 | Keys readable by other users |
 | Skip submodule init | Proxy won't exist |
-| Modify LLM-API-Key-Proxy/ directly | It's a submodule with its own repo |
-| Use `[ ]` instead of `[[ ]]` in bash | Less safe, inconsistent with codebase |
+| Modify `LLM-API-Key-Proxy/` directly | It's a submodule with its own repo |
+| Use `[ ]` instead of `[[ ]]` | Less safe, inconsistent with codebase |
 | Omit `set -euo pipefail` | Scripts may silently fail |
+| Use `localhost` in bindings | Use `127.0.0.1` explicitly |
+| Use `#!/bin/bash` | Use `#!/usr/bin/env bash` for portability |
 
 ---
 
@@ -176,12 +152,12 @@ check_file() {
 
 ```
 ┌─────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│  OpenCode   │────▶│  LLM-API-Key-Proxy   │────▶│ Gemini/Anthropic│
+│  OpenCode   │────>│  LLM-API-Key-Proxy   │────>│ Gemini/Anthropic│
 │             │     │  (127.0.0.1:8000)    │     │      APIs       │
 └─────────────┘     └──────────────────────┘     └─────────────────┘
        │
        │  OAuth (direct)
-       ▼
+       v
 ┌─────────────────┐
 │   OpenAI API    │
 └─────────────────┘
@@ -189,21 +165,57 @@ check_file() {
 
 ---
 
-## SECURITY CHECKLIST
+## SYSTEMD SERVICE PATTERNS
 
-Before committing any changes:
+Template uses placeholders users must customize:
+```ini
+[Service]
+WorkingDirectory=/path/to/LLM-API-Key-Proxy
+ExecStart=/path/to/venv/bin/python -m llm_proxy --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+```
 
-- [ ] No API keys, tokens, or credentials in code
-- [ ] `.env.example` has placeholder values only
-- [ ] Proxy binds to `127.0.0.1` (not `0.0.0.0`)
-- [ ] Documentation reflects security best practices
+Key patterns:
+- `Type=simple` for foreground processes
+- `Restart=always` with `RestartSec=3` for resilience
+- `WantedBy=default.target` for user services
+- Always bind to `127.0.0.1`, never `0.0.0.0`
 
 ---
 
-## NOTES FOR AI AGENTS
+## SECURITY CHECKLIST
 
-1. **No tests exist** - use `./scripts/verify-config.sh` as the only validation
+Before committing:
+
+- [ ] No API keys, tokens, or credentials in code
+- [ ] `.env.example` has placeholder/empty values only
+- [ ] Proxy binds to `127.0.0.1` (not `0.0.0.0`)
+- [ ] Documentation reflects security best practices
+- [ ] No `LOG_BODIES=true` in examples
+
+---
+
+## AI AGENT RULES
+
+1. **No tests exist** - `./scripts/verify-config.sh` is the only validation
 2. **Submodule is read-only** - never modify files in `LLM-API-Key-Proxy/`
 3. **User services only** - all systemd commands use `--user` flag
-4. **Paths in templates** - service files have placeholder paths that users must customize
-5. **This repo is documentation** - most "code" is config templates and shell scripts
+4. **Paths in templates** - service files have `/path/to` placeholders users must customize
+5. **Template suffix** - config templates use `.example` suffix; never create actual `.env`
+6. **JSON config** - `opencode.json.example` uses 2-space indent, no trailing commas
+7. **Binding address** - always use `127.0.0.1`, never `0.0.0.0` or `localhost`
+8. **Script boilerplate** - every `.sh` file needs `#!/usr/bin/env bash` + `set -euo pipefail`
+
+### File Modification Rules
+
+| Action | Allowed | Notes |
+|--------|---------|-------|
+| Edit `scripts/*.sh` | Yes | Follow existing patterns, include safety flags |
+| Edit `config/*.example` | Yes | Placeholder/empty values only |
+| Edit `examples/*.example` | Yes | Placeholder values only |
+| Edit `docs/*.md` | Yes | Keep security warnings prominent |
+| Edit `systemd/*.service` | Yes | Template paths only |
+| Create new `.env` | **NO** | Only `.example` templates |
+| Modify `LLM-API-Key-Proxy/*` | **NO** | Read-only submodule |
+| Add real credentials | **NO** | Immediate security incident |
