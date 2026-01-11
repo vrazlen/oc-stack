@@ -1,3 +1,6 @@
 [submodule "plugins/opencode-github-autonomy"]
 	path = plugins/opencode-github-autonomy
 	url = https://github.com/vrazlen/opencode-github-autonomy.git
+[submodule "plugins/opencode-mem0"]
+	path = plugins/opencode-mem0
+	url = https://github.com/vrazlen/opencode-mem0.git
