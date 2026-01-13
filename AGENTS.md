@@ -151,6 +151,8 @@ git submodule update --init --recursive
 | `bun install` | Install Deps | **Mandatory** after clone. Fixes SIGABRT. |
 | `bun run tsc --noEmit` | Type Check | The primary verification method. |
 | `bun run build` | Build | Output to `dist/` (if configured). |
+| `bun test` | Run Tests | Runs all tests (if any exist). |
+| `bun test <file>` | Single Test | Run specific test file (e.g. `bun test src/foo.test.ts`). |
 | `lsp_diagnostics` | Static Analysis | **MUST RUN** before committing. |
 
 *Note: No automated test suites (`*.test.ts`) currently exist. Verification relies on `bun run tsc` success, `lsp_diagnostics` checks, and runtime validation.*
