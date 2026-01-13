@@ -1,100 +1,415 @@
 # OpenCode Plugin Ecosystem
 
-Plugins extend the capabilities of OpenCode with new tools, authentication methods, and workflow enhancements. The `oc-stack` environment is designed to support a modular plugin architecture.
+**Overview:** This project includes OpenCode plugins as git submodules for extended functionality.
 
-## Plugin Matrix
+---
 
-| Name | Purpose | Install | Repo |
-|------|---------|---------|------|
-| **opencode-github-autonomy** | GitHub operations with security guardrails | `bun install` | `plugins/oc-github` (local) |
-| **opencode-openai-codex-auth** | OpenAI OAuth authentication | `npm install` | [vrazlen/opencode-openai-codex-auth](https://github.com/vrazlen/opencode-openai-codex-auth) |
-| **oh-my-opencode** | Enhanced OpenCode experience | `bun install` | [code-yeongyu/oh-my-opencode](https://github.com/code-yeongyu/oh-my-opencode) |
-| **opencode-morph-fast-apply** | Fast code editing via Morph AI | `bun install` | (local) |
-| **opencode-mem0** | Long-term memory with RAG injection | `bun install` | `plugins/opencode-mem0` (local) |
+## 📚 Documentation
 
-## Installation Guide
+### Complete Plugin Development Guides
 
-To install a plugin, follow these general steps:
+| Guide | Description | Size |
+|-------|-------------|------|
+| [**PLUGIN_QUICKSTART.md**](./PLUGIN_QUICKSTART.md) | Get started in 15 minutes - your first plugin | 16KB |
+| [**PLUGIN_HOOKS_REFERENCE.md**](./PLUGIN_HOOKS_REFERENCE.md) | Complete hook documentation with examples | 17KB |
+| [**PLUGIN_API_REFERENCE.md**](./PLUGIN_API_REFERENCE.md) | TypeScript API reference for @opencode-ai/plugin | 20KB |
+| [**PLUGIN_SECURITY_PATTERNS.md**](./PLUGIN_SECURITY_PATTERNS.md) | Security best practices and guardrails | 18KB |
 
-1.  **Clone or Download**: Get the plugin source code.
-    *   External plugins: `git clone <repo-url>`
-    *   Local plugins: Located in `plugins/` directory or your preferred workspace.
-2.  **Install Dependencies**: Run the package manager inside the plugin directory.
-    ```bash
-    cd <plugin-directory>
-    bun install  # or npm install
-    ```
-3.  **Register Plugin**: Add the absolute path to your `opencode.json` configuration.
-    ```json
-    {
-      "plugin": [
-        "/absolute/path/to/plugin-directory"
-      ]
+**Total:** 71KB of comprehensive, production-ready documentation
+
+---
+
+## Installed Plugins
+
+### 1. GitHub Autonomy Plugin
+
+**Location:** `plugins/opencode-github-autonomy/`  
+**Source:** https://github.com/vrazlen/opencode-github-autonomy
+
+**Features:**
+- GitHub operations with security guardrails
+- Allowlist-based access control (READ open, WRITE restricted)
+- Session-based approval workflow
+- Forbidden operations blocking (force push, workflow modification)
+
+**Quick Reference:**
+- `github_status` - Check plugin health
+- `github_search` - Search repositories/issues/code
+- `github_issue_*` - Issue operations (list, create, comment)
+- `github_pr_*` - Pull request operations (list, create)
+- `github_repo_file_*` - File operations (get, put)
+- `github_session_allow_repo` - Approve write access for session
+
+**Configuration:** `~/.config/opencode/github-policy.json`
+
+**Documentation:** See `plugins/opencode-github-autonomy/INSTRUCTIONS.md`
+
+---
+
+### 2. Mem0 Long-Term Memory Plugin
+
+**Location:** `plugins/opencode-mem0/`  
+**Source:** https://github.com/vrazlen/opencode-mem0
+
+**Features:**
+- Persistent memory across sessions using Mem0 API
+- Automatic RAG injection (retrieves relevant memories)
+- Auto-capture of user messages
+- Secret scrubbing before storage
+- User/project scope separation
+
+**Quick Reference:**
+- `memory(action="search", query="...")` - Search memories
+- `memory(action="add", query="...")` - Store memory
+- `memory(action="delete", memory_id="...")` - Remove memory
+- `memory(action="list")` - List recent memories
+- `memory(action="clear")` - Delete all memories
+- `memory_status` - Check configuration
+
+**Environment Variables:**
+```bash
+MEM0_API_KEY=your-api-key          # Required
+MEM0_USER_ID=anonymous             # Optional (default: anonymous)
+MEM0_ENABLED=true                  # Optional (default: true)
+MEM0_RAG_ENABLED=true              # Optional (default: true)
+MEM0_AUTO_ADD=true                 # Optional (default: true)
+```
+
+**Documentation:** See `plugins/opencode-mem0/INSTRUCTIONS.md`
+
+---
+
+## Plugin Management
+
+### Sync All Plugins
+
+```bash
+git submodule update --init --recursive
+```
+
+### Update to Latest
+
+```bash
+git submodule update --remote --merge
+```
+
+### Add New Plugin
+
+```bash
+git submodule add https://github.com/user/opencode-plugin-name plugins/plugin-name
+```
+
+### Remove Plugin
+
+```bash
+git submodule deinit -f plugins/plugin-name
+git rm -f plugins/plugin-name
+rm -rf .git/modules/plugins/plugin-name
+```
+
+---
+
+## Plugin Development
+
+### Quick Start (5 minutes)
+
+1. **Create plugin directory:**
+```bash
+mkdir -p ~/.config/opencode/plugin/my-plugin
+cd ~/.config/opencode/plugin/my-plugin
+```
+
+2. **Initialize:**
+```bash
+bun init -y
+bun add -D @opencode-ai/plugin typescript
+```
+
+3. **Create plugin:**
+```typescript
+// src/index.ts
+import { Hook } from "@opencode-ai/plugin"
+
+export default {
+  name: "my-plugin",
+  version: "1.0.0",
+  hooks: {
+    "chat.message": async (input, output) => {
+      output.message = `Enhanced: ${input.message}`
     }
-    ```
-4.  **Add Instructions**: If the plugin provides an instruction file (e.g., `INSTRUCTIONS.md`), add it to the `instructions` array for better AI context.
+  }
+} satisfies Hook
+```
 
-## GitHub Autonomy Plugin
+4. **Test it:**
+```bash
+# Restart OpenCode and type any message
+# You should see "Enhanced:" prepended
+```
 
-The **OpenCode GitHub Autonomy Plugin** (`plugins/oc-github`) is the core integration for this stack, providing secure, AI-driven GitHub operations.
+### Full Tutorial
 
-### Key Features
-*   **Safe Operations**: Granular permission controls for repository management.
-*   **Guardrails**: Critical paths like `.github/workflows` are protected from accidental modification.
-*   **Session Approvals**: Write operations on non-allowlisted repos require explicit user confirmation.
-*   **Comprehensive Tools**:
-    *   `github_issue_*`: Manage issues (list, create, comment).
-    *   `github_pr_*`: Handle pull requests.
-    *   `github_search`: Search code and repositories.
-    *   `github_repo_file_*`: Read and write files securely.
+See [PLUGIN_QUICKSTART.md](./PLUGIN_QUICKSTART.md) for complete walkthrough including:
+- Hook implementations
+- Custom tool creation
+- Security patterns
+- Testing strategies
+- Publishing options
 
-### Setup
-1.  Navigate to `plugins/oc-github`.
-2.  Run `bun install`.
-3.  Ensure `OPENCODE_GITHUB_TOKEN` is set in your environment.
-4.  Add to `opencode.json` (see Configuration below).
+---
 
-## Mem0 Long-Term Memory Plugin
+## Plugin Architecture
 
-The **Mem0 plugin** (`plugins/opencode-mem0`) provides persistent memory across sessions via [Mem0](https://mem0.ai).
+### Hook Lifecycle
 
-### Key Features
-*   **Passive RAG Injection**: Automatically searches and injects relevant memories at session start.
-*   **Auto-Capture**: Silently stores user messages as project memories.
-*   **Secret Scrubbing**: API keys, tokens, and credentials are redacted before storage.
-*   **Dual Scoping**: User-level (cross-project) and project-level memories.
-*   **Active Tool**: `memory` tool for search/add/delete/list/clear operations.
+```
+User Message
+    ↓
+chat.message hooks (all plugins, sequential)
+    ↓
+experimental.chat.system.transform hooks
+    ↓
+chat.params hooks
+    ↓
+LLM API Call
+    ↓
+Assistant Response
+    ↓
+Tool Calls Detected
+    ↓
+tool.execute.before hooks (validation)
+    ↓
+Tool Execution
+    ↓
+tool.execute.after hooks (sanitization)
+    ↓
+Final Output
+```
 
-### Setup
-1.  Navigate to `plugins/opencode-mem0`.
-2.  Run `bun install`.
-3.  Set `MEM0_API_KEY` in your environment.
-4.  Optionally set `MEM0_USER_ID` for cross-project memory identity.
-5.  Add to `opencode.json` (see Configuration below).
+### Hook Categories
 
-### Environment Variables
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MEM0_API_KEY` | (required) | Mem0 API key |
-| `MEM0_USER_ID` | `anonymous` | User identifier |
-| `MEM0_ENABLED` | `true` | Master toggle |
-| `MEM0_RAG_ENABLED` | `true` | Passive injection |
-| `MEM0_AUTO_ADD` | `true` | Auto-capture messages |
+| Category | Hooks | Use Cases |
+|----------|-------|-----------|
+| **Chat** | `chat.message`, `chat.params` | RAG, filtering, model selection |
+| **Tools** | `tool.execute.before/after` | Validation, sanitization, logging |
+| **System** | `experimental.chat.system.transform` | Custom instructions, guidelines |
+| **Permissions** | `permission.ask` | Access control, approval workflows |
 
-## Configuration
+---
 
-Add plugins to your `~/.config/opencode/opencode.json` file.
+## Security Considerations
 
-```json
-{
-  "plugin": [
-    "/home/user/Work/oc-stack/plugins/oc-github",
-    "opencode-openai-codex-auth@4.2.0"
-  ],
-  "instructions": [
-    "/home/user/Work/oc-stack/plugins/oc-github/INSTRUCTIONS.md"
-  ]
+### Plugin Trust Model
+
+- **User-level plugins** (`~/.config/opencode/plugin/`): Trusted by user
+- **Project-level plugins** (`.opencode/plugin/`): Review before use
+- **npm packages**: Verify source before installing
+
+### Security Best Practices
+
+1. **Input Validation:** Always validate tool arguments in `tool.execute.before`
+2. **Secret Scrubbing:** Remove secrets in `tool.execute.after`
+3. **Access Control:** Use allowlists for write operations
+4. **Path Canonicalization:** Prevent directory traversal
+5. **Error Handling:** Don't leak sensitive data in errors
+
+See [PLUGIN_SECURITY_PATTERNS.md](./PLUGIN_SECURITY_PATTERNS.md) for detailed security patterns.
+
+---
+
+## Available Hooks
+
+### Stable Hooks ✅
+
+| Hook | Purpose | Common Uses |
+|------|---------|-------------|
+| `chat.message` | Modify messages before LLM | RAG injection, filtering |
+| `chat.params` | Modify LLM parameters | Model selection, temperature |
+| `tool.execute.before` | Validate before tool runs | Security, access control |
+| `tool.execute.after` | Process tool output | Sanitization, logging |
+| `permission.ask` | Customize permission prompts | Auto-approval, custom messages |
+
+### Experimental Hooks ⚠️
+
+| Hook | Purpose | Warning |
+|------|---------|---------|
+| `experimental.chat.system.transform` | Inject system instructions | API may change |
+| `experimental.chat.messages.transform` | Modify conversation history | API may change |
+| `experimental.session.compacting` | Control session compaction | API may change |
+| `experimental.text.complete` | Customize text completion | API may change |
+
+See [PLUGIN_HOOKS_REFERENCE.md](./PLUGIN_HOOKS_REFERENCE.md) for complete hook documentation.
+
+---
+
+## Real-World Examples
+
+### Example 1: RAG Injection
+
+```typescript
+"chat.message": async (input, output) => {
+  const context = await searchKnowledgeBase(input.message)
+  if (context.length > 0) {
+    output.message = `<Context>\n${context}\n</Context>\n\n${input.message}`
+  }
 }
 ```
 
-*Note: Replace `/home/user/Work/oc-stack` with your actual project path.*
+**See:** [opencode-mem0/src/index.ts](../plugins/opencode-mem0/src/index.ts)
+
+---
+
+### Example 2: Command Validation
+
+```typescript
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "bash") {
+    if (/rm\s+-rf\s+\//.test(output.args.command)) {
+      throw new Error("Dangerous command blocked")
+    }
+  }
+}
+```
+
+**See:** [PLUGIN_SECURITY_PATTERNS.md](./PLUGIN_SECURITY_PATTERNS.md)
+
+---
+
+### Example 3: Secret Scrubbing
+
+```typescript
+"tool.execute.after": async (input, output) => {
+  if (typeof output.result === "string") {
+    output.result = output.result.replace(
+      /sk-[a-zA-Z0-9]{48}/g, 
+      "***REDACTED***"
+    )
+  }
+}
+```
+
+**See:** [opencode-mem0/src/secrets.ts](../plugins/opencode-mem0/src/secrets.ts)
+
+---
+
+### Example 4: Access Control
+
+```typescript
+const approved = new Set<string>()
+
+"tool.execute.before": async (input, output) => {
+  if (input.tool === "github_repo_file_put") {
+    const repo = output.args.repo
+    if (!approved.has(repo)) {
+      throw new Error(`Write access to ${repo} requires approval`)
+    }
+  }
+}
+```
+
+**See:** [opencode-github-autonomy/src/policy.ts](../plugins/opencode-github-autonomy/src/policy.ts)
+
+---
+
+## Troubleshooting
+
+### Plugin Not Loading
+
+1. **Check plugin location:**
+```bash
+ls ~/.config/opencode/plugin/
+ls .opencode/plugin/
+```
+
+2. **Verify package.json:**
+```json
+{
+  "main": "src/index.ts",  // or "dist/index.js"
+  "type": "module"
+}
+```
+
+3. **Check for errors:**
+```bash
+export OPENCODE_DEBUG=true
+opencode
+```
+
+---
+
+### Hook Not Firing
+
+1. **Verify hook name:** Must match exactly (case-sensitive)
+2. **Check hook signature:** Must be async and return Promise<void>
+3. **Enable debug logging:**
+```typescript
+"chat.message": async (input, output) => {
+  console.error("[my-plugin] chat.message called", input)
+  // ... your logic
+}
+```
+
+---
+
+### TypeScript Errors
+
+1. **Install types:**
+```bash
+bun add -D @opencode-ai/plugin typescript
+```
+
+2. **Use `satisfies Hook`:**
+```typescript
+export default {
+  name: "my-plugin",
+  hooks: { /* ... */ }
+} satisfies Hook  // Type checking
+```
+
+---
+
+## Official Resources
+
+- **Main Documentation:** https://opencode.ai/docs/plugins/
+- **Comprehensive Guide:** https://gist.github.com/johnlindquist/0adf1032b4e84942f3e1050aba3c5e4a
+- **Tutorial:** https://dev.to/einarcesar/does-opencode-support-hooks-a-complete-guide-to-extensibility-k3p
+- **Source Code:** https://github.com/opencode-ai/opencode/tree/main/packages/plugin
+- **Community Plugins:** https://github.com/topics/opencode-plugin
+
+---
+
+## Contributing
+
+### Creating a Plugin
+
+1. Develop and test locally
+2. Publish to npm or GitHub
+3. Add to this project as submodule (if generally useful)
+4. Document in INSTRUCTIONS.md
+
+### Submitting to This Project
+
+```bash
+# Fork this repo
+git clone https://github.com/yourusername/oc-stack
+cd oc-stack
+
+# Add your plugin as submodule
+git submodule add https://github.com/yourusername/opencode-plugin-name plugins/plugin-name
+
+# Commit and create PR
+git commit -am "Add plugin-name plugin"
+git push origin main
+```
+
+---
+
+## License
+
+Each plugin has its own license. See individual plugin directories for details.
+
+---
+
+**Last Updated:** 2026-01-13  
+**Plugin Count:** 2 active plugins  
+**Documentation:** 71KB across 4 comprehensive guides
