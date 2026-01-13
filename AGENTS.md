@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-01-13 17:32:44  
-**Commit:** aaace31  
+**Generated:** 2026-01-13 17:45:00
+**Commit:** aaace31
 **Branch:** main
 
 ## OVERVIEW
@@ -140,6 +140,43 @@ git submodule update --init --recursive
 ./scripts/install-systemd-user-service.sh
 ./scripts/enable-linger.sh
 ```
+
+## DEVELOPMENT STANDARDS
+
+### Build & Verification
+**Runtime:** [Bun](https://bun.sh) (v1.0+) is REQUIRED for plugins. `npm`/`yarn` will fail.
+
+| Command | Action | Notes |
+|---------|--------|-------|
+| `bun install` | Install Deps | **Mandatory** after clone. Fixes SIGABRT. |
+| `bun run tsc --noEmit` | Type Check | The primary verification method. |
+| `bun run build` | Build | Output to `dist/` (if configured). |
+| `lsp_diagnostics` | Static Analysis | **MUST RUN** before committing. |
+
+*Note: No automated test suites (`*.test.ts`) currently exist. Verification relies on `bun run tsc` success, `lsp_diagnostics` checks, and runtime validation.*
+
+### Code Style
+- **Language:** TypeScript (Strict)
+- **Formatting:** 2 spaces, No semicolons, Double quotes.
+- **Naming:**
+  - Constants: `UPPER_SNAKE_CASE` (e.g., `MAX_OUTPUT_CHARS`)
+  - Interfaces: PascalCase (e.g., `SafetyConfig`)
+  - Variables: camelCase
+- **Structure:** Imports → Constants → Types → State → Logic.
+
+### Operational Rules
+1.  **Context First:** Always read `INSTRUCTIONS.md` of the target plugin before editing.
+2.  **No Magic Strings:** Move all configuration/limits to top-level `const` definitions.
+3.  **Error Handling:** Never swallow errors. Propagate or catch-and-log with context.
+4.  **Types:** No `any`. Define interfaces for all API responses.
+
+### Hardening & Safety
+1.  **Network:** Proxy **MUST** bind to `127.0.0.1`. **NEVER** `0.0.0.0`.
+2.  **Secrets:**
+    - `opencode-mem0` scrubs keys/tokens via regex (lines 16-26).
+    - No secrets in `.env` templates.
+    - Logs redacted by default.
+3.  **Filesystem:** `fail_closed` policy. Blocked: `.github/workflows/**`, `.github/actions/**`.
 
 ## NOTES
 
